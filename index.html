@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>System Breach</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+background:black;
+color:#00ff00;
+font-family:monospace;
+overflow:hidden;
+}
+#matrix{position:fixed;inset:0;z-index:-1;opacity:.35}
+#terminal{padding:15px;height:100vh;overflow:auto;font-size:14px;line-height:1.4}
+.warning{color:red;font-size:22px;text-align:center;margin:20px}
+.popup{
+position:fixed;inset:0;
+background:rgba(0,0,0,.95);
+display:flex;align-items:center;justify-content:center;
+flex-direction:column;
+color:white;
+z-index:999;
+font-size:20px;
+}
+.shake{animation:shake .1s infinite}
+@keyframes shake{
+0%{transform:translate(0)}
+25%{transform:translate(5px)}
+50%{transform:translate(-5px)}
+75%{transform:translate(5px)}
+100%{transform:translate(0)}
+}
+.led{
+position:fixed;
+top:8px;right:12px;
+width:12px;height:12px;
+border-radius:50%;
+background:red;
+animation:blink 1s infinite;
+z-index:1000;
+}
+@keyframes blink{50%{opacity:.1}}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<canvas id="matrix"></canvas>
+<div class="led"></div>
+<div id="terminal"></div>
+
+<audio id="click" src="https://actions.google.com/sounds/v1/camera/camera_shutter_click_01.mp3"></audio>
+<audio id="ring" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"></audio>
+
+<script>
+// MATRIX
+const c=document.getElementById("matrix"),x=c.getContext("2d");
+c.width=innerWidth;c.height=innerHeight;
+let letters="01ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+let font=16,cols=c.width/font;
+let drops=Array(Math.floor(cols)).fill(1);
+setInterval(()=>{
+x.fillStyle="rgba(0,0,0,.05)";
+x.fillRect(0,0,c.width,c.height);
+x.fillStyle="#0f0";
+x.font=font+"px monospace";
+drops.forEach((y,i)=>{
+let t=letters[Math.floor(Math.random()*letters.length)];
+x.fillText(t,i*font,y*font);
+if(y*font>c.height&&Math.random()>.98)drops[i]=0;
+drops[i]++;
+});
+},33);
+
+// TERMINAL
+const t=document.getElementById("terminal");
+const logs=[
+"> Connecting to device...",
+"> Camera permission GRANTED",
+"> Screenshot captured",
+"> GPS Locked: 28.6139° N , 77.2090° E",
+"> WhatsApp service hijacked",
+"> Incoming remote command...",
+"> Nearby device connected",
+"> Battery critical: 1%",
+"> CYBER CELL TRACE ENABLED",
+"> DATA WIPE IN 10 SECONDS"
+];
+
+let i=0;
+function log(){
+if(i<logs.length){
+t.innerHTML+=logs[i++]+"<br>";
+t.scrollTop=t.scrollHeight;
+if(i==2)document.getElementById("click").play();
+if(i==5)document.getElementById("ring").play();
+setTimeout(log,900);
+}else sequence();
+}
+setTimeout(log,1000);
+
+// SEQUENCE
+function sequence(){
+navigator.vibrate?.([200,100,200,100,200]);
+document.body.classList.add("shake");
+
+popup("📸 Screenshot Captured",1500,()=>{
+popup("📞 Fake WhatsApp Incoming Call",2000,()=>{
+popup("🔐 Lock Screen Compromised",2000,()=>{
+popup("🚓 CYBER CELL NOTICE\nIP TRACKED",2500,()=>{
+countdown(10);
+});
+});
+});
+});
+}
+
+// POPUP
+function popup(text,time,cb){
+let p=document.createElement("div");
+p.className="popup";
+p.innerText=text;
+document.body.appendChild(p);
+setTimeout(()=>{p.remove();cb&&cb();},time);
+}
+
+// COUNTDOWN
+function countdown(n){
+let p=document.createElement("div");
+p.className="popup";
+document.body.appendChild(p);
+let i=n;
+let int=setInterval(()=>{
+p.innerText="🧨 DATA WIPE IN "+i+"s";
+i--;
+if(i<0){
+clearInterval(int);
+selfDestruct();
+}
+},1000);
+}
+
+// FINAL
+function selfDestruct(){
+document.body.innerHTML="";
+document.body.style.background="black";
+setTimeout(()=>{
+document.body.innerHTML="<h1 style='color:red;text-align:center;margin-top:40vh'>CONNECTION TERMINATED</h1>";
+},800);
+}
+</script>
+
+</body>
+</html>
+
