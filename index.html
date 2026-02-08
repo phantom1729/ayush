@@ -1,157 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>System Breach</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{
-background:black;
-color:#00ff00;
-font-family:monospace;
-overflow:hidden;
-}
-#matrix{position:fixed;inset:0;z-index:-1;opacity:.35}
-#terminal{padding:15px;height:100vh;overflow:auto;font-size:14px;line-height:1.4}
-.warning{color:red;font-size:22px;text-align:center;margin:20px}
-.popup{
-position:fixed;inset:0;
-background:rgba(0,0,0,.95);
-display:flex;align-items:center;justify-content:center;
-flex-direction:column;
-color:white;
-z-index:999;
-font-size:20px;
-}
-.shake{animation:shake .1s infinite}
-@keyframes shake{
-0%{transform:translate(0)}
-25%{transform:translate(5px)}
-50%{transform:translate(-5px)}
-75%{transform:translate(5px)}
-100%{transform:translate(0)}
-}
-.led{
-position:fixed;
-top:8px;right:12px;
-width:12px;height:12px;
-border-radius:50%;
-background:red;
-animation:blink 1s infinite;
-z-index:1000;
-}
-@keyframes blink{50%{opacity:.1}}
-.hidden{display:none}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Raksha Audio Sentinel</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #000; color: white; text-align: center; overflow: hidden; }
+        
+        .header { padding: 15px; background: #111; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .pulse { width: 10px; height: 10px; background: #0f0; border-radius: 50%; box-shadow: 0 0 10px #0f0; animation: blink 1s infinite; }
+        
+        /* VISUALIZER */
+        #visualizer { width: 100%; height: 200px; background: #000; display: flex; align-items: center; justify-content: center; gap: 3px; }
+        .bar { width: 5px; background: #3b82f6; height: 10px; transition: height 0.1s; }
+
+        /* HUD */
+        #safetyHUD {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 85%; padding: 20px; border-radius: 20px;
+            background: rgba(10, 10, 10, 0.95); border: 2px solid #333;
+            transition: all 0.3s;
+        }
+        .status-big { font-size: 24px; font-weight: 900; margin: 0; }
+        .status-small { font-size: 12px; color: #aaa; margin-top: 5px; }
+        
+        .danger { border-color: #ef4444 !important; color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
+        .safe { border-color: #10b981 !important; color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+
+        .btn { background: #222; color: white; border: 1px solid #444; padding: 10px 30px; border-radius: 20px; margin-top: 20px; }
+
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
 </head>
 <body>
 
-<canvas id="matrix"></canvas>
-<div class="led"></div>
-<div id="terminal"></div>
+    <div class="header">
+        <div>🎤 <span style="font-weight:bold">AUDIO SENTINEL</span></div>
+        <div style="font-size:10px; display:flex; align-items:center; gap:5px;">LISTENING <div class="pulse"></div></div>
+    </div>
 
-<audio id="click" src="https://actions.google.com/sounds/v1/camera/camera_shutter_click_01.mp3"></audio>
-<audio id="ring" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"></audio>
+    <div style="position:relative; height:50vh; opacity:0.6;">
+        <iframe id="mapFrame" width="100%" height="100%" frameborder="0" style="filter: invert(100%) hue-rotate(180deg);"></iframe>
+    </div>
 
-<script>
-// MATRIX
-const c=document.getElementById("matrix"),x=c.getContext("2d");
-c.width=innerWidth;c.height=innerHeight;
-let letters="01ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-let font=16,cols=c.width/font;
-let drops=Array(Math.floor(cols)).fill(1);
-setInterval(()=>{
-x.fillStyle="rgba(0,0,0,.05)";
-x.fillRect(0,0,c.width,c.height);
-x.fillStyle="#0f0";
-x.font=font+"px monospace";
-drops.forEach((y,i)=>{
-let t=letters[Math.floor(Math.random()*letters.length)];
-x.fillText(t,i*font,y*font);
-if(y*font>c.height&&Math.random()>.98)drops[i]=0;
-drops[i]++;
-});
-},33);
+    <div id="visualizer">
+        </div>
 
-// TERMINAL
-const t=document.getElementById("terminal");
-const logs=[
-"> Connecting to device...",
-"> Camera permission GRANTED",
-"> Screenshot captured",
-"> GPS Locked: 28.6139° N , 77.2090° E",
-"> WhatsApp service hijacked",
-"> Incoming remote command...",
-"> Nearby device connected",
-"> Battery critical: 1%",
-"> CYBER CELL TRACE ENABLED",
-"> DATA WIPE IN 10 SECONDS"
-];
+    <div id="safetyHUD">
+        <h1 class="status-big" id="mainText">INITIALIZING...</h1>
+        <p class="status-small" id="subText">Calibrating Microphone Sensors...</p>
+    </div>
 
-let i=0;
-function log(){
-if(i<logs.length){
-t.innerHTML+=logs[i++]+"<br>";
-t.scrollTop=t.scrollHeight;
-if(i==2)document.getElementById("click").play();
-if(i==5)document.getElementById("ring").play();
-setTimeout(log,900);
-}else sequence();
-}
-setTimeout(log,1000);
+    <div style="padding:10px;">
+        <p style="color:#555; font-size:10px;">SYSTEM: DECIBEL LEVEL ANALYSIS (NO API REQUIRED)</p>
+        <button class="btn" onclick="window.location.href='index.html'">EXIT SCANNER</button>
+    </div>
 
-// SEQUENCE
-function sequence(){
-navigator.vibrate?.([200,100,200,100,200]);
-document.body.classList.add("shake");
+    <script>
+        // INIT MAP
+        if(navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const lat = pos.coords.latitude; 
+                const lon = pos.coords.longitude;
+                document.getElementById("mapFrame").src = `https://maps.google.com/maps?q=${lat},${lon}&t=m&z=15&output=embed`;
+            });
+        }
 
-popup("📸 Screenshot Captured",1500,()=>{
-popup("📞 Fake WhatsApp Incoming Call",2000,()=>{
-popup("🔐 Lock Screen Compromised",2000,()=>{
-popup("🚓 CYBER CELL NOTICE\nIP TRACKED",2500,()=>{
-countdown(10);
-});
-});
-});
-});
-}
+        // --- AUDIO ANALYSIS ENGINE ---
+        let audioContext, analyser, microphone, dataArray;
+        let isDanger = false;
 
-// POPUP
-function popup(text,time,cb){
-let p=document.createElement("div");
-p.className="popup";
-p.innerText=text;
-document.body.appendChild(p);
-setTimeout(()=>{p.remove();cb&&cb();},time);
-}
+        // Auto Start on Load (User click might be needed for audio policy)
+        document.body.addEventListener('click', startAudio, {once:true});
+        setTimeout(startAudio, 1000); 
 
-// COUNTDOWN
-function countdown(n){
-let p=document.createElement("div");
-p.className="popup";
-document.body.appendChild(p);
-let i=n;
-let int=setInterval(()=>{
-p.innerText="🧨 DATA WIPE IN "+i+"s";
-i--;
-if(i<0){
-clearInterval(int);
-selfDestruct();
-}
-},1000);
-}
+        async function startAudio() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
 
-// FINAL
-function selfDestruct(){
-document.body.innerHTML="";
-document.body.style.background="black";
-setTimeout(()=>{
-document.body.innerHTML="<h1 style='color:red;text-align:center;margin-top:40vh'>CONNECTION TERMINATED</h1>";
-},800);
-}
-</script>
+                analyser.fftSize = 64;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
 
+                createVisualizer(bufferLength);
+                analyze();
+            } catch (err) {
+                document.getElementById("subText").innerText = "Microphone Permission Denied. Tap screen to allow.";
+            }
+        }
+
+        function createVisualizer(count) {
+            const container = document.getElementById("visualizer");
+            container.innerHTML = "";
+            for (let i = 0; i < 20; i++) { // Show 20 bars
+                let bar = document.createElement("div");
+                bar.className = "bar";
+                container.appendChild(bar);
+            }
+        }
+
+        function analyze() {
+            requestAnimationFrame(analyze);
+            analyser.getByteFrequencyData(dataArray);
+
+            // 1. Calculate Average Volume
+            let sum = 0;
+            for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            let average = sum / dataArray.length; // 0 to 255
+
+            // 2. Animate Visualizer
+            const bars = document.getElementsByClassName("bar");
+            for(let i=0; i<bars.length; i++) {
+                bars[i].style.height = (dataArray[i] / 2) + "px";
+                bars[i].style.background = isDanger ? "#ef4444" : "#10b981";
+            }
+
+            // 3. LOGIC: SAFETY DECISION
+            // Thresholds: Sannata < 10, Shor > 30 (Adjust based on mic sensitivity)
+            const hour = new Date().getHours();
+            const isNight = (hour >= 20 || hour <= 5);
+
+            // Logic: Agar raat hai aur sannata hai = DANGER
+            if (average < 15 && isNight) {
+                setDanger("🚨 DANGER: EERIE SILENCE", "No ambient noise detected. Area is lonely.");
+            } 
+            else if (average < 10) {
+                // Din me bhi sannata danger ho sakta hai lekin kam
+                setDanger("⚠️ CAUTION: LOW ACTIVITY", "Very quiet area detected.");
+            }
+            else if (average > 40) {
+                // Bahut shor = Market/Traffic = SAFE
+                setSafe("✅ SAFE: HIGH ACTIVITY", "Crowd/Traffic noise detected.");
+            }
+            else {
+                // Normal
+                setSafe("🛡️ SCANNING...", "Ambient noise levels normal.");
+            }
+        }
+
+        let lastSpeak = "";
+        function setDanger(title, sub) {
+            isDanger = true;
+            const hud = document.getElementById("safetyHUD");
+            hud.className = "danger";
+            document.getElementById("mainText").innerText = title;
+            document.getElementById("subText").innerText = sub;
+
+            if(title.includes("DANGER") && lastSpeak !== "danger") {
+                speak("Warning. The area is too quiet. Please be alert.");
+                if(navigator.vibrate) navigator.vibrate([200]);
+                lastSpeak = "danger";
+            }
+        }
+
+        function setSafe(title, sub) {
+            isDanger = false;
+            const hud = document.getElementById("safetyHUD");
+            hud.className = "safe";
+            document.getElementById("mainText").innerText = title;
+            document.getElementById("subText").innerText = sub;
+            
+            if(title.includes("SAFE") && lastSpeak !== "safe") {
+                speak("Area sounds busy. You are safe.");
+                lastSpeak = "safe";
+            }
+        }
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+        }
+    </script>
 </body>
 </html>
-
