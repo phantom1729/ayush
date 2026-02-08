@@ -2,177 +2,201 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Raksha Audio Sentinel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raksha Pro Scanner</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #000; color: white; text-align: center; overflow: hidden; }
-        
-        .header { padding: 15px; background: #111; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .pulse { width: 10px; height: 10px; background: #0f0; border-radius: 50%; box-shadow: 0 0 10px #0f0; animation: blink 1s infinite; }
-        
-        /* VISUALIZER */
-        #visualizer { width: 100%; height: 200px; background: #000; display: flex; align-items: center; justify-content: center; gap: 3px; }
-        .bar { width: 5px; background: #3b82f6; height: 10px; transition: height 0.1s; }
+        body {
+            font-family: 'Courier New', Courier, monospace; /* Hacker Font */
+            background-color: #000; color: #0f0;
+            text-align: center; margin: 0; padding: 0;
+            overflow: hidden;
+        }
 
-        /* HUD */
-        #safetyHUD {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            width: 85%; padding: 20px; border-radius: 20px;
-            background: rgba(10, 10, 10, 0.95); border: 2px solid #333;
+        /* HEADER */
+        .header {
+            padding: 10px; border-bottom: 2px solid #0f0;
+            display: flex; justify-content: space-between; align-items: center;
+            background: #051a05;
+        }
+        .blinking { animation: blink 1s infinite; color: red; }
+
+        /* RADAR VISUALIZER */
+        #radar-container {
+            position: relative; width: 100%; height: 40vh;
+            background: radial-gradient(circle, rgba(0,50,0,1) 0%, rgba(0,0,0,1) 100%);
+            display: flex; align-items: center; justify-content: center;
+            border-bottom: 1px solid #333;
+        }
+        .circle {
+            position: absolute; border: 1px solid #0f0; border-radius: 50%;
+            opacity: 0.3;
+        }
+        .c1 { width: 100px; height: 100px; }
+        .c2 { width: 200px; height: 200px; }
+        .c3 { width: 300px; height: 300px; }
+        .scan-line {
+            width: 50%; height: 2px; background: #0f0;
+            position: absolute; top: 50%; left: 50%;
+            transform-origin: 0 0; animation: scan 2s infinite linear;
+        }
+
+        /* HUD ALERTS */
+        #status-box {
+            padding: 20px;
             transition: all 0.3s;
         }
-        .status-big { font-size: 24px; font-weight: 900; margin: 0; }
-        .status-small { font-size: 12px; color: #aaa; margin-top: 5px; }
+        .big-text { font-size: 30px; font-weight: 900; margin: 10px 0; text-transform: uppercase; }
+        .small-text { font-size: 14px; color: #aaa; }
+
+        .danger-mode { color: #ff0000; text-shadow: 0 0 20px #ff0000; }
+        .safe-mode { color: #00ff00; text-shadow: 0 0 20px #00ff00; }
+
+        /* CONTROLS */
+        .controls {
+            position: absolute; bottom: 0; width: 100%; height: 25vh;
+            background: #111; padding: 15px; box-sizing: border-box;
+            border-top: 2px solid #333;
+        }
+        input[type=range] { width: 90%; accent-color: #0f0; margin: 15px 0; }
         
-        .danger { border-color: #ef4444 !important; color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
-        .safe { border-color: #10b981 !important; color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        .meter-bar { width: 90%; height: 10px; background: #333; margin: 0 auto; border-radius: 5px; overflow: hidden; }
+        .fill-bar { height: 100%; width: 0%; background: #0f0; transition: width 0.1s; }
 
-        .btn { background: #222; color: white; border: 1px solid #444; padding: 10px 30px; border-radius: 20px; margin-top: 20px; }
-
+        @keyframes scan { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes blink { 50% { opacity: 0; } }
+        
+        button { background: #222; color: white; border: 1px solid #555; padding: 10px 20px; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div>🎤 <span style="font-weight:bold">AUDIO SENTINEL</span></div>
-        <div style="font-size:10px; display:flex; align-items:center; gap:5px;">LISTENING <div class="pulse"></div></div>
+        <div>SYSTEM: <span style="color:white">AUDIO_HUNT</span></div>
+        <div class="blinking">● REC</div>
     </div>
 
-    <div style="position:relative; height:50vh; opacity:0.6;">
-        <iframe id="mapFrame" width="100%" height="100%" frameborder="0" style="filter: invert(100%) hue-rotate(180deg);"></iframe>
+    <div id="radar-container">
+        <div class="circle c1"></div>
+        <div class="circle c2"></div>
+        <div class="circle c3"></div>
+        <div class="scan-line"></div>
+        <h1 style="z-index:10; font-size:40px;" id="decibelDisplay">0 dB</h1>
     </div>
 
-    <div id="visualizer">
-        </div>
-
-    <div id="safetyHUD">
-        <h1 class="status-big" id="mainText">INITIALIZING...</h1>
-        <p class="status-small" id="subText">Calibrating Microphone Sensors...</p>
+    <div id="status-box">
+        <div class="small-text">ANALYSIS RESULT:</div>
+        <div class="big-text" id="mainStatus">INITIALIZING...</div>
     </div>
 
-    <div style="padding:10px;">
-        <p style="color:#555; font-size:10px;">SYSTEM: DECIBEL LEVEL ANALYSIS (NO API REQUIRED)</p>
-        <button class="btn" onclick="window.location.href='index.html'">EXIT SCANNER</button>
+    <div class="controls">
+        <div class="meter-bar"><div class="fill-bar" id="volumeBar"></div></div>
+        <p style="margin:5px 0; font-size:10px; color:#aaa;">NOISE LEVEL (LIVE)</p>
+
+        <label style="font-size:12px; color:white;">SENSITIVITY ADJUSTMENT:</label>
+        <input type="range" id="threshold" min="5" max="50" value="15">
+        
+        <br>
+        <button onclick="window.location.href='index.html'">EXIT SYSTEM</button>
     </div>
 
     <script>
-        // INIT MAP
-        if(navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                const lat = pos.coords.latitude; 
-                const lon = pos.coords.longitude;
-                document.getElementById("mapFrame").src = `https://maps.google.com/maps?q=${lat},${lon}&t=m&z=15&output=embed`;
-            });
-        }
-
-        // --- AUDIO ANALYSIS ENGINE ---
         let audioContext, analyser, microphone, dataArray;
-        let isDanger = false;
+        let isRunning = false;
+        let lastSpeakTime = 0;
 
-        // Auto Start on Load (User click might be needed for audio policy)
-        document.body.addEventListener('click', startAudio, {once:true});
-        setTimeout(startAudio, 1000); 
+        // Auto-Start
+        document.body.onclick = startSystem; // Click anywhere to start if blocked
+        setTimeout(startSystem, 1000);
 
-        async function startAudio() {
+        async function startSystem() {
+            if(isRunning) return;
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser();
                 microphone = audioContext.createMediaStreamSource(stream);
                 microphone.connect(analyser);
-
-                analyser.fftSize = 64;
-                const bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
-
-                createVisualizer(bufferLength);
-                analyze();
-            } catch (err) {
-                document.getElementById("subText").innerText = "Microphone Permission Denied. Tap screen to allow.";
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                isRunning = true;
+                loopAnalysis();
+                
+                // Speak Greeting
+                speak("System Online. Scanning Environment.");
+            } catch (e) {
+                document.getElementById("mainStatus").innerText = "MIC PERMISSION DENIED";
             }
         }
 
-        function createVisualizer(count) {
-            const container = document.getElementById("visualizer");
-            container.innerHTML = "";
-            for (let i = 0; i < 20; i++) { // Show 20 bars
-                let bar = document.createElement("div");
-                bar.className = "bar";
-                container.appendChild(bar);
-            }
-        }
-
-        function analyze() {
-            requestAnimationFrame(analyze);
+        function loopAnalysis() {
+            requestAnimationFrame(loopAnalysis);
             analyser.getByteFrequencyData(dataArray);
 
-            // 1. Calculate Average Volume
+            // 1. Calculate Volume Average
             let sum = 0;
             for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-            let average = sum / dataArray.length; // 0 to 255
+            let average = sum / dataArray.length;
 
-            // 2. Animate Visualizer
-            const bars = document.getElementsByClassName("bar");
-            for(let i=0; i<bars.length; i++) {
-                bars[i].style.height = (dataArray[i] / 2) + "px";
-                bars[i].style.background = isDanger ? "#ef4444" : "#10b981";
-            }
+            // 2. Update Visuals
+            document.getElementById("decibelDisplay").innerText = Math.round(average) + " dB";
+            document.getElementById("volumeBar").style.width = (average * 2) + "%";
 
-            // 3. LOGIC: SAFETY DECISION
-            // Thresholds: Sannata < 10, Shor > 30 (Adjust based on mic sensitivity)
-            const hour = new Date().getHours();
-            const isNight = (hour >= 20 || hour <= 5);
-
-            // Logic: Agar raat hai aur sannata hai = DANGER
-            if (average < 15 && isNight) {
-                setDanger("🚨 DANGER: EERIE SILENCE", "No ambient noise detected. Area is lonely.");
-            } 
-            else if (average < 10) {
-                // Din me bhi sannata danger ho sakta hai lekin kam
-                setDanger("⚠️ CAUTION: LOW ACTIVITY", "Very quiet area detected.");
-            }
-            else if (average > 40) {
-                // Bahut shor = Market/Traffic = SAFE
-                setSafe("✅ SAFE: HIGH ACTIVITY", "Crowd/Traffic noise detected.");
-            }
-            else {
-                // Normal
-                setSafe("🛡️ SCANNING...", "Ambient noise levels normal.");
+            // 3. DECISION LOGIC (Runs every 3 seconds)
+            const now = Date.now();
+            if (now - lastSpeakTime > 3000) { // Har 3 second baad bolega
+                evaluateSafety(average);
+                lastSpeakTime = now;
             }
         }
 
-        let lastSpeak = "";
-        function setDanger(title, sub) {
-            isDanger = true;
-            const hud = document.getElementById("safetyHUD");
-            hud.className = "danger";
-            document.getElementById("mainText").innerText = title;
-            document.getElementById("subText").innerText = sub;
+        function evaluateSafety(volume) {
+            const threshold = document.getElementById("threshold").value;
+            const hud = document.getElementById("status-box");
+            const statusText = document.getElementById("mainStatus");
 
-            if(title.includes("DANGER") && lastSpeak !== "danger") {
-                speak("Warning. The area is too quiet. Please be alert.");
-                if(navigator.vibrate) navigator.vibrate([200]);
-                lastSpeak = "danger";
-            }
-        }
+            // Logic:
+            // Volume < Threshold (Sannata) = Danger
+            // Volume > Threshold (Shor) = Safe
 
-        function setSafe(title, sub) {
-            isDanger = false;
-            const hud = document.getElementById("safetyHUD");
-            hud.className = "safe";
-            document.getElementById("mainText").innerText = title;
-            document.getElementById("subText").innerText = sub;
-            
-            if(title.includes("SAFE") && lastSpeak !== "safe") {
-                speak("Area sounds busy. You are safe.");
-                lastSpeak = "safe";
+            if (volume < threshold) {
+                // DANGER MODE
+                hud.className = "danger-mode";
+                statusText.innerText = "⚠️ DANGER: SILENCE";
+                
+                // Dynamic Voice
+                const phrases = [
+                    "Warning. Too quiet.",
+                    "Danger zone detected.",
+                    "Alert. Isolation level high."
+                ];
+                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+                speak(randomPhrase);
+                
+                if(navigator.vibrate) navigator.vibrate(200);
+            } else {
+                // SAFE MODE
+                hud.className = "safe-mode";
+                statusText.innerText = "✅ AREA SAFE";
+                
+                const phrases = [
+                    "Area looks safe.",
+                    "Activity detected.",
+                    "You are safe."
+                ];
+                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+                speak(randomPhrase);
             }
         }
 
         function speak(text) {
+            // Stop previous speech to avoid overlapping
             window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+            
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 1.1; // Thoda tez bolega robot jaisa
+            msg.pitch = 1.0;
+            window.speechSynthesis.speak(msg);
         }
     </script>
 </body>
